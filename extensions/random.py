@@ -20,6 +20,13 @@ async def kanye(ctx:lightbulb.Context) -> None:
             await ctx.respond(f"Ye once said: {quote}")
 
 
+@plugin.command
+@lightbulb.command("hello","it says hello")
+@lightbulb.implements(lightbulb.PrefixCommand)
+async def hello(ctx:lightbulb.Context) -> None:
+    await ctx.respond(f"hello {ctx.member.display_name}")
+
+
 
 
 def load(bot:lightbulb.BotApp):
