@@ -30,12 +30,10 @@ async def on_starting(event: hikari.StartingEvent) -> None:
 async def on_started(event: hikari.StartedEvent) -> None:
     logging.info("extensions loaded succesfully")
     logging.info("Bot deployed succesfully")
-    await bot.rest.create_message(channel=int(os.environ["GENERAL_CHANNEL_ID"]),content="Wassup Buddy.")
 
 @bot.listen(hikari.StoppingEvent)
 async def on_stopped(event: hikari.StoppingEvent) -> None:
-    await bot.rest.create_message(channel=int(os.environ["GENERAL_CHANNEL_ID"]),content="See You Soon Buddy.")   
-  
+    ...
 
 bot.run(
     status=hikari.Status.ONLINE,
