@@ -29,6 +29,7 @@ async def hello(ctx:lightbulb.Context) -> None:
 
 
 
+
 def load(bot:lightbulb.BotApp):
     bot.add_plugin(plugin)
 
