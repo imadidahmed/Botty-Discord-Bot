@@ -1,4 +1,5 @@
 import os
+from tkinter.messagebox import NO
 
 import lightbulb
 import hikari
@@ -17,6 +18,7 @@ bot = lightbulb.BotApp(
     owner_ids=[int(os.environ["OWNER_ID"])],
     case_insensitive_prefix_commands=True,
     intents = hikari.Intents.ALL,
+    help_class=None
 )
 
 
