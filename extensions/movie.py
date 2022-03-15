@@ -69,7 +69,7 @@ async def search_movie(ctx: lightbulb.Context) -> None:
 
         embed =(hikari.Embed(
             title=f"{title.upper()} ({release_date})",
-            colour= hikari.Color(0x7f9c85),
+            colour= hikari.Color(0xe5e5e5),
             timestamp=datetime.datetime.now().astimezone(),
             )
             .set_thumbnail(image)
@@ -111,7 +111,7 @@ async def search_movie(ctx: lightbulb.Context) -> None:
             title=f"🎬 WATCH [{title.upper()}] NOW",
             url=movie,
             timestamp=datetime.datetime.now().astimezone(),
-            colour=hikari.Color(0x7f9c85),
+            colour=hikari.Color(0xe5e5e5),
             )
             .set_image(image)
             .set_footer(f"Requested by {ctx.member.display_name}",icon=ctx.member.avatar_url)
@@ -141,7 +141,7 @@ async def trending_movies(ctx: lightbulb.Context) -> None:
         
         embed=(hikari.Embed(
             title=title.upper(),
-            colour=hikari.Color(0x7f9c85),
+            colour=hikari.Color(0xe5e5e5),
             timestamp=datetime.datetime.now().astimezone(),
         )
         .set_thumbnail(thumbnail)
@@ -184,7 +184,7 @@ async def similar_movies(ctx: lightbulb.Context) -> None:
         
         embed=(hikari.Embed(
             title="SIMILAR MOVIES",
-            colour=hikari.Color(0x7f9c85),
+            colour=hikari.Color(0xe5e5e5),
             timestamp=datetime.datetime.now().astimezone(),
         )
         .add_field(name=f"A LIST OF SIMILAR MOVIES LIKE {title.upper()}:",value=embedlist)
@@ -216,7 +216,7 @@ async def popular_movies(ctx:lightbulb.Context) -> None:
 
     embed=(hikari.Embed(
         title="POPULAR MOVIES",
-        colour=hikari.Color(0x7f9c85),
+        colour=hikari.Color(0xe5e5e5),
         timestamp=datetime.datetime.now().astimezone()
         )
     .add_field(
