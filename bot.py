@@ -1,5 +1,4 @@
 import os
-from tkinter.messagebox import NO
 
 import lightbulb
 import hikari
