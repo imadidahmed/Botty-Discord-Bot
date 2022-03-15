@@ -18,7 +18,7 @@ async def shutdown(ctx: lightbulb.Context) -> None:
 @plugin.command
 @lightbulb.add_checks(lightbulb.owner_only)
 @lightbulb.command("extension","extension group command",hidden=True)
-@lightbulb.implements(lightbulb.PrefixCommandGroup,lightbulb.SlashCommandGroup)
+@lightbulb.implements(lightbulb.PrefixCommandGroup)
 async def ext(ctx:lightbulb.Context) -> None:
     await ctx.respond("load/unload/reload")
 
@@ -26,7 +26,7 @@ async def ext(ctx:lightbulb.Context) -> None:
 @ext.child
 @lightbulb.option("extension","its an extension(obviously)")
 @lightbulb.command("load","it loads an extension ",inherit_checks=True,hidden=True)
-@lightbulb.implements(lightbulb.PrefixSubCommand,lightbulb.SlashSubCommand)
+@lightbulb.implements(lightbulb.PrefixSubCommand)
 async def loadext(ctx:lightbulb.Context) -> None:
     plugin.bot.load_extensions(f"extensions.{ctx.options.extension}")
     await ctx.respond("extension loaded succesfully")
@@ -35,7 +35,7 @@ async def loadext(ctx:lightbulb.Context) -> None:
 @ext.child
 @lightbulb.option("extension","its an extension(obviously)")
 @lightbulb.command("unload","it unloads an extension ",inherit_checks=True,hidden=True)
-@lightbulb.implements(lightbulb.PrefixSubCommand,lightbulb.SlashSubCommand)
+@lightbulb.implements(lightbulb.PrefixSubCommand)
 async def unloadext(ctx:lightbulb.Context) -> None:
     plugin.bot.unload_extensions(f"extensions.{ctx.options.extension}")
     await ctx.respond("extension unloaded succesfully")
@@ -44,7 +44,7 @@ async def unloadext(ctx:lightbulb.Context) -> None:
 @ext.child
 @lightbulb.option("extension","its an extension(obviously)")
 @lightbulb.command("reload","it reloads an extension",inherit_checks=True,hidden=True)
-@lightbulb.implements(lightbulb.PrefixSubCommand,lightbulb.SlashSubCommand)
+@lightbulb.implements(lightbulb.PrefixSubCommand)
 async def unloadext(ctx:lightbulb.Context) -> None:
     plugin.bot.reload_extensions(f"extensions.{ctx.options.extension}")
     await ctx.respond("extension reloaded succesfully")
