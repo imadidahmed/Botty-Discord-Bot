@@ -30,6 +30,7 @@ async def on_starting(event: hikari.StartingEvent) -> None:
 async def on_started(event: hikari.StartedEvent) -> None:
     logging.info("extensions loaded succesfully")
     logging.info("Bot deployed succesfully")
+    logging.info(f"Botty is in {len(bot.cache.get_guilds_view())} server.")
 
 @bot.listen(hikari.StoppingEvent)
 async def on_stopped(event: hikari.StoppingEvent) -> None:
