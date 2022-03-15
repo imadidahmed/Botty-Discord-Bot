@@ -31,7 +31,7 @@ async def embed(ctx: lightbulb.Context) -> None:
         await ctx.respond(embed, reply=True, mentions_reply=True)
 
 @plugin.command
-@lightbulb.command("help","a commands helper")
+@lightbulb.command("help","Get a list of available commands ")
 @lightbulb.implements(lightbulb.PrefixCommand, lightbulb.SlashCommand)
 async def help(ctx: lightbulb.Context) -> None:
     movie_commands=["","👉 !𝖒𝖔𝖛𝖎𝖊 𝖘𝖊𝖆𝖗𝖈𝖍 [𝖒𝖔𝖛𝖎𝖊 𝖓𝖆𝖒𝖊]: 𝕲𝖊𝖙 𝖉𝖊𝖙𝖆𝖎𝖑𝖘 𝖆𝖇𝖔𝖚𝖙 𝖙𝖍𝖊 𝖒𝖔𝖛𝖎𝖊.","👉 !𝖒𝖔𝖛𝖎𝖊 𝖜𝖆𝖙𝖈𝖍 [𝖒𝖔𝖛𝖎𝖊 𝖓𝖆𝖒𝖊]: 𝕲𝖊𝖙 𝖆 𝖉𝖎𝖗𝖊𝖈𝖙 𝖘𝖙𝖗𝖊𝖆𝖒𝖎𝖓𝖌 𝖑𝖎𝖓𝖐𝖘 𝖋𝖔𝖗 𝖜𝖆𝖙𝖈𝖍𝖎𝖓𝖌 𝖆𝖓𝖉 𝖉𝖔𝖜𝖓𝖑𝖔𝖆𝖉𝖎𝖓𝖌.","👉 !𝖒𝖔𝖛𝖎𝖊 𝖙𝖗𝖊𝖓𝖉𝖎𝖓𝖌: 𝕲𝖊𝖙 𝖙𝖗𝖊𝖓𝖉𝖎𝖓𝖌 𝖒𝖔𝖛𝖎𝖊𝖘 𝖙𝖍𝖎𝖘 𝖜𝖊𝖊𝖐.","👉 !𝖒𝖔𝖛𝖎𝖊 𝖘𝖎𝖒𝖎𝖑𝖆𝖗 [𝖒𝖔𝖛𝖎𝖊 𝖓𝖆𝖒𝖊]: 𝕲𝖊𝖙 𝖆 𝖑𝖎𝖘𝖙 𝖔𝖋 𝖘𝖎𝖒𝖎𝖑𝖆𝖗 𝖒𝖔𝖛𝖎𝖊𝖘.","👉 !𝖒𝖔𝖛𝖎𝖊 𝖕𝖔𝖕𝖚𝖑𝖆𝖗: 𝕲𝖊𝖙 𝖆 𝖑𝖎𝖘𝖙 𝖔𝖋 𝖙𝖍𝖊 𝖈𝖚𝖗𝖗𝖊𝖓𝖙 𝖕𝖔𝖕𝖚𝖑𝖆𝖗 𝖒𝖔𝖛𝖎𝖊𝖘."]
