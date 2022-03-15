@@ -50,6 +50,13 @@ async def unloadext(ctx:lightbulb.Context) -> None:
     await ctx.respond("extension reloaded succesfully")
 
 
+@plugin.command
+@lightbulb.command("server","num of servers")
+@lightbulb.implements(lightbulb.PrefixCommand)
+async def server (ctx : lightbulb.Context) -> None:
+    await ctx.respond(f"Botty is in {len(plugin.bot.cache.get_guilds_view())} server.")
+
+
 def load(bot: lightbulb.BotApp) -> None:
     bot.add_plugin(plugin)
 
