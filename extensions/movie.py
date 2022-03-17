@@ -208,7 +208,6 @@ async def popular_movies(ctx:lightbulb.Context) -> None:
     if r.status_code in range(200,299):
         data=r.json()
     
-    thumbnail="https://m.media-amazon.com/images/G/01/imdb/images/social/imdb_logo.png"
     poster_path=data["results"][0]['poster_path']
     image=f"https://image.tmdb.org/t/p/w500/{poster_path}"
     popular_movies=[]
@@ -233,6 +232,48 @@ async def popular_movies(ctx:lightbulb.Context) -> None:
     )
     await ctx.respond(embed)
 
+
+@movie.child
+@lightbulb.add_cooldown(5.0,3,lightbulb.UserBucket)
+@lightbulb.option("movie","The movie name.")
+@lightbulb.command("recommendation","Get a list of recommended movies for a movie.")
+@lightbulb.implements(lightbulb.PrefixSubCommand,lightbulb.SlashSubCommand)
+async def similar_movies(ctx: lightbulb.Context) -> None:
+    #connection to api
+    endpoint_path1="/search/movie"
+    endpoint1=f"{base_url}{endpoint_path1}?api_key={API_KEY}&query={ctx.options.movie}"
+    r1=requests.get(endpoint1)
+    if r1.status_code in range(200,299):
+        data1= r1.json()
+        mv_id=data1["results"][0]['id']
+    
+    endpoint_path=f"/movie/{mv_id}/recommendations"
+    endpoint=f"{base_url}{endpoint_path}?api_key={API_KEY}"
+    r=requests.get(endpoint)
+    if r.status_code in range(200,299):
+        data=r.json()
+        
+        poster_path=data1["results"][0]['poster_path']
+        image=f"https://image.tmdb.org/t/p/w500/{poster_path}"
+        recs_movies=[]
+        for i in range(len(data["results"])):
+            recs_movies.append(data["results"][i]["title"])
+        embedlist = '\n'.join(recs_movies)
+        title=data1["results"][0]["original_title"]
+        
+        embed=(hikari.Embed(
+            title="movie recommendations".upper(),
+            colour=hikari.Color(0xe5e5e5),
+            timestamp=datetime.datetime.now().astimezone(),
+        )
+        .add_field(name=f"A LIST OF {title.upper()} RECOMMENDATIONS:",value=embedlist)
+        .set_thumbnail(image)
+        .set_footer(
+            text=f"Requested by {ctx.member.display_name}",
+            icon=ctx.member.avatar_url
+            )
+        )
+        await ctx.respond(embed)
 
 def load(bot:lightbulb.BotApp):
     bot.add_plugin(plugin)
