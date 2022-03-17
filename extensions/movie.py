@@ -209,6 +209,8 @@ async def popular_movies(ctx:lightbulb.Context) -> None:
         data=r.json()
     
     thumbnail="https://m.media-amazon.com/images/G/01/imdb/images/social/imdb_logo.png"
+    poster_path=data["results"][0]['poster_path']
+    image=f"https://image.tmdb.org/t/p/w500/{poster_path}"
     popular_movies=[]
     for i in range(len(data["results"])):
         popular_movies.append(data["results"][i]["title"])
@@ -223,7 +225,7 @@ async def popular_movies(ctx:lightbulb.Context) -> None:
         name="A LIST OF POPULAR MOVIES",
         value=popular_movies
         )
-    .set_thumbnail(thumbnail)
+    .set_thumbnail(image)
     .set_footer(
         text=f"Requested by {ctx.member.display_name}",
         icon=ctx.member.avatar_url

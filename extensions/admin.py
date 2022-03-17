@@ -51,10 +51,10 @@ async def unloadext(ctx:lightbulb.Context) -> None:
 
 
 @plugin.command
-@lightbulb.command("server","num of servers")
+@lightbulb.command("botty","num of servers")
 @lightbulb.implements(lightbulb.PrefixCommand)
 async def server (ctx : lightbulb.Context) -> None:
-    await ctx.respond(f"Botty is in {len(plugin.bot.cache.get_guilds_view())} server.")
+    await ctx.respond(f"Botty is in {len(plugin.bot.cache.get_guilds_view())} servers.")
 
 
 def load(bot: lightbulb.BotApp) -> None:
