@@ -266,7 +266,7 @@ async def similar_movies(ctx: lightbulb.Context) -> None:
             colour=hikari.Color(0xe5e5e5),
             timestamp=datetime.datetime.now().astimezone(),
         )
-        .add_field(name=f"A LIST OF {title.upper()} RECOMMENDATIONS:",value=embedlist)
+        .add_field(name=f"A LIST OF [{title.upper()}] RECOMMENDATIONS:",value=embedlist)
         .set_thumbnail(image)
         .set_footer(
             text=f"Requested by {ctx.member.display_name}",
