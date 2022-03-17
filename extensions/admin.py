@@ -51,6 +51,7 @@ async def unloadext(ctx:lightbulb.Context) -> None:
 
 
 @plugin.command
+@lightbulb.add_checks(lightbulb.owner_only)
 @lightbulb.command("botty","num of servers")
 @lightbulb.implements(lightbulb.PrefixCommand)
 async def server (ctx : lightbulb.Context) -> None:
