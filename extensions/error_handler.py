@@ -24,7 +24,7 @@ async def on_error(event: lightbulb.CommandErrorEvent) -> None:
     if isinstance(event.context,lightbulb.CommandIsOnCooldown):
         await event.context.respond("this command is in cooldown repeat after 5 sec !!!")
     if isinstance(event.exception,lightbulb.NotOwner):
-        await event.context.respond("sorry but you cannot use this type of commands (owner only)")
+        await event.context.respond("You can't use this type of commands (OWNER ONLY).")
 
     
 
