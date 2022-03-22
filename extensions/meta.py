@@ -11,7 +11,7 @@ plugin = lightbulb.Plugin("random")
 @lightbulb.implements(lightbulb.PrefixCommand,lightbulb.SlashCommand)
 async def ping(ctx: lightbulb.Context) -> None:
     await asyncio.sleep(1)
-    await ctx.respond(f"latency: {int(plugin.bot.heartbeat_latency*1000)} ms",reply=True, mentions_reply=True)
+    await ctx.respond(f"Latency: {int(plugin.bot.heartbeat_latency*1000)} ms",reply=True, mentions_reply=True)
 
 
 
