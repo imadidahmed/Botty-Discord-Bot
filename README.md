@@ -70,7 +70,7 @@ Botty is a versatile Discord bot developed by me using Python and powered by the
 
 ## Contributing
 
-Contributions to Botty are welcome! If you'd like to enhance the bot's features or fix issues, please create pull requests.
+Contributions to Botty are welcomed! If you'd like to enhance the bot's features or fix issues, please create pull requests.
 
 ## Support
 
