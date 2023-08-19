@@ -13,8 +13,6 @@ Botty is a versatile Discord bot developed by me using Python and powered by the
 
 - **Similar Movies and Series:** Discover similar movies and series to the one you're interested in. Botty can recommend movies & series that share thematic or genre similarities.
 
-- **Watch Links:** Botty not only gives you information but also provides links to watch your chosen movies and series. Enjoy your favorite content hassle-free!
-
 - **Comprehensive Details:** Each entry provided by Botty includes:
   - **Title:** The title of the movie or series.
   - **Description:** A concise description to give you an idea of the content.
