@@ -76,7 +76,7 @@ Contributions to Botty are welcome! If you'd like to enhance the bot's features 
 
 ## Support
 
-If you encounter any issues or have questions about using Botty, join our [support server](https://discord.gg/botty-support) for assistance.
+If you encounter any issues or have questions about using Botty, join our [support server](https://discord.gg/xAbsk6Fz) for assistance.
 
 ---
 
