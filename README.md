@@ -33,7 +33,7 @@ Botty is a versatile Discord bot developed by me using Python and powered by the
 1. **Clone the Repository:**
 
    ```bash
-   git clone https://github.com/imadidahmed/botty.git
+   git clone https://github.com/imadidahmed/Botty-Discord-Bot.git
    cd botty-discord-bot
 
 2. **Install Dependencies:**
