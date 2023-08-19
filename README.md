@@ -1,7 +1,7 @@
 # Botty Discord Bot
 
 
-Botty is a versatile Discord bot developed by me using Python and powered by the Hikari and Lightbulb libraries. The bot provides users with comprehensive information about movies and series, including popular and trending titles. It also features a powerful search functionality for finding specific movies and series and offers links for users to watch their favorite content. Each entry in the bot's responses is enriched with its title, a brief description, genres, release date, actors, and the movie/serie thumbnail.
+Botty is a versatile Discord bot developed by me using Python and powered by the Hikari and Lightbulb libraries. The bot provides users with comprehensive information about movies and series, including popular and trending titles. It also features a powerful search functionality for finding specific movies & series. Each entry in the bot's responses is enriched with its title, a brief description, genres, release date, actors, and the movie/serie thumbnail.
 
 ## Features
 
