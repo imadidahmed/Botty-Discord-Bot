@@ -19,7 +19,7 @@ async def help(ctx: lightbulb.Context) -> None:
     movie_commands="\n".join(movie_commands)
     serie_commands="\n".join(serie_commands)
     embed=(hikari.Embed(
-        title="𝐁𝐎𝐓𝐓𝐘 𝐁𝐈𝐁𝐋𝐄",
+        title="𝐁𝐎𝐓𝐓𝐘 𝐁𝐈𝐁𝐋𝐄.",
         colour= hikari.Color(0xe5e5e5),
         timestamp=datetime.datetime.now().astimezone(),
     )
