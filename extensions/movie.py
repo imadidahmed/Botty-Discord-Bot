@@ -133,7 +133,7 @@ async def watch_movie(ctx: lightbulb.Context) -> None:
     poster_path = movie_result.get("poster_path")
     image = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
     # Example: using an external embed service
-    watch_link = f" https://multiembed.mov/directstream.php?video_id={mv_id}&tmdb=1"
+    watch_link = f" https://multiembed.mov?video_id={mv_id}&tmdb=1"
     embed = hikari.Embed(
         title=f"🎬 WATCH [{title.upper()}] NOW",
         url=watch_link,

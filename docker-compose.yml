@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  discord-bot:
+    container_name: botty
+    image: botty:latest
+    env_file:
+      - .env
+    volumes:
+      - .:/app
