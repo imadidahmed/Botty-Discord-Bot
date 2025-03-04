@@ -1,281 +1,320 @@
 import os
-
 import datetime
 import hikari
 import lightbulb
 import requests
 import dotenv
+from urllib.parse import quote
 
+# Load environment variables; MOVIE_API_KEY should be your TMDb Bearer token
+dotenv.load_dotenv()
+TMDB_BEARER = os.environ.get("MOVIE_API_KEY")
+if not TMDB_BEARER:
+    raise ValueError("MOVIE_API_KEY (Bearer token) not set in environment.")
 
+base_url = "https://api.themoviedb.org/3"
+
+# Headers as recommended by TMDb when using Bearer token authentication
+headers = {
+    "accept": "application/json",
+    "Authorization": f"Bearer {TMDB_BEARER}"
+}
+
+# Use a persistent session for efficiency
+session = requests.Session()
 
 plugin = lightbulb.Plugin("movie")
-dotenv.load_dotenv()
-
-base_url="https://api.themoviedb.org/3"
-API_KEY=os.environ["MOVIE_API_KEY"]
-
 
 @plugin.command()
-@lightbulb.add_cooldown(5.0,3,lightbulb.UserBucket)
-@lightbulb.command("movie","movie command that gonna help you a lot.",auto_defer=True)
-@lightbulb.implements(lightbulb.PrefixCommandGroup,lightbulb.SlashCommandGroup)
+@lightbulb.add_cooldown(5.0, 3, lightbulb.UserBucket)
+@lightbulb.command("movie", "Movie command that helps you search for movies.", auto_defer=True)
+@lightbulb.implements(lightbulb.PrefixCommandGroup, lightbulb.SlashCommandGroup)
 async def movie(ctx: lightbulb.Context) -> None:
     ...
 
-#search a movie
+# 1. Search for a movie and show its details
 @movie.child
-@lightbulb.add_cooldown(5.0,3,lightbulb.UserBucket)
-@lightbulb.option("movie","movie you wanna search for.")
-@lightbulb.command("search","Get details about a movie.",aliases=["src"])
-@lightbulb.implements(lightbulb.PrefixSubCommand,lightbulb.SlashSubCommand)
+@lightbulb.add_cooldown(5.0, 3, lightbulb.UserBucket)
+@lightbulb.option("movie", "The title of the movie to search for.")
+@lightbulb.command("search", "Retrieve detailed information about a movie.", aliases=["src"])
+@lightbulb.implements(lightbulb.PrefixSubCommand, lightbulb.SlashSubCommand)
 async def search_movie(ctx: lightbulb.Context) -> None:
-    #connection to api
-    endpoint_path1="/search/movie"
-    endpoint1=f"{base_url}{endpoint_path1}?api_key={API_KEY}&query={ctx.options.movie}"
-    r1=requests.get(endpoint1)
-    if r1.status_code in range(200,299):
-        data= r1.json()
-        mv_id=data["results"][0]['id']
-    
-    endpoint_path2=f"/movie/{mv_id}"
-    endpoint2=f"{base_url}{endpoint_path2}?api_key={API_KEY}"
-    r2=requests.get(endpoint2)
-    if r2.status_code in range(200,299):
-        data2=r2.json()
+    query = ctx.options.movie
+    # Use parameters as a dict and include language
+    params_search = {"query": query, "language": "en-US"}
+    search_url = f"{base_url}/search/movie"
+    r1 = session.get(search_url, headers=headers, params=params_search)
+    if r1.status_code != 200:
+        await ctx.respond("Failed to retrieve movie data from TMDb.", reply=True)
+        return
 
-    endpoint_path3=f"/movie/{mv_id}/videos"
-    endpoint3=f"{base_url}{endpoint_path3}?api_key={API_KEY}"
-    r3=requests.get(endpoint3)
-    if r3.status_code in range(200,299):
-        data3=r3.json()
-        video_key=data3["results"][0]["key"]
-    
-    #manipulate data
-        title=data["results"][0]['title']
-        overview=data["results"][0]['overview']
-        release_date=data["results"][0]['release_date'][0:4]
-        movie_id=data["results"][0]['id']
-        poster_path=data["results"][0]['poster_path']
-        image=f"https://image.tmdb.org/t/p/w500/{poster_path}"
-        rating=data2["vote_average"]
-        time=data2["runtime"]
-        status=data2["status"]
-        budget=data2["budget"]
-        revenue=data2["revenue"]        
-        genres=[]
-        for i in range(len(data2["genres"])):
-            genres.append(data2["genres"][i]["name"])
-        genres='  '.join(genres)
+    data = r1.json()
+    if not data.get("results"):
+        await ctx.respond("No movie found with that title.", reply=True)
+        return
 
-        embed =(hikari.Embed(
-            title=f"{title.upper()} ({release_date})",
-            colour= hikari.Color(0xe5e5e5),
-            timestamp=datetime.datetime.now().astimezone(),
-            )
-            .set_thumbnail(image)
-            .add_field(name="OVERVIEW",value=overview)
-            .add_field(name="GENRES", value=genres,inline=True)
-            .add_field(name="RATING",value=f"{rating}",inline=True)
-            .add_field(name="DURATION",value=f"{time} min",inline=True)
-            .add_field(name="STATUS",value=status,inline=True)
+    movie_result = data["results"][0]
+    mv_id = movie_result.get("id")
+    if not mv_id:
+        await ctx.respond("Movie ID not found in search results.", reply=True)
+        return
 
-            .set_footer(
-                text=f"Requested by {ctx.member.display_name}",
-                icon=ctx.member.avatar_url
-            )
-        )
+    # Retrieve detailed movie data and appended videos
+    params_details = {"append_to_response": "videos", "language": "en-US"}
+    details_url = f"{base_url}/movie/{mv_id}"
+    r2 = session.get(details_url, headers=headers, params=params_details)
+    if r2.status_code != 200:
+        await ctx.respond("Failed to retrieve movie details.", reply=True)
+        return
+    data2 = r2.json()
 
-        await ctx.respond(embed,reply=True,mentions_reply=True)
+    # Extract video information if available
+    video_key = None
+    if data2.get("videos") and data2["videos"].get("results"):
+        video_results = data2["videos"]["results"]
+        if video_results:
+            video_key = video_results[0].get("key")
 
-#watch the movie
+    # Extract common fields
+    title = movie_result.get("title", "Unknown Title")
+    overview = movie_result.get("overview", "No overview available.")
+    release_date = movie_result.get("release_date", "")
+    release_year = release_date[:4] if release_date else "N/A"
+    poster_path = movie_result.get("poster_path")
+    image = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+    rating = data2.get("vote_average", "N/A")
+    runtime = data2.get("runtime", "N/A")
+    status_movie = data2.get("status", "N/A")
+    genres = "  ".join([g.get("name") for g in data2.get("genres", []) if g.get("name")]) or "N/A"
+
+    embed = hikari.Embed(
+        title=f"{title.upper()} ({release_year})",
+        colour=hikari.Color(0xe5e5e5),
+        timestamp=datetime.datetime.now().astimezone(),
+    )
+    if image:
+        embed.set_thumbnail(image)
+    embed.add_field(name="OVERVIEW", value=overview)
+    embed.add_field(name="GENRES", value=genres, inline=True)
+    embed.add_field(name="RATING", value=str(rating), inline=True)
+    embed.add_field(name="DURATION", value=f"{runtime} min", inline=True)
+    embed.add_field(name="STATUS", value=status_movie, inline=True)
+    if video_key:
+        embed.add_field(name="Trailer", value=f"https://www.youtube.com/watch?v={video_key}", inline=False)
+    embed.set_footer(text=f"Requested by {ctx.member.display_name}", icon=ctx.member.avatar_url)
+    await ctx.respond(embed, reply=True, mentions_reply=True)
+
+# 2. Watch a movie – provides a link to an external embed service
 @movie.child
-@lightbulb.add_cooldown(5.0,3,lightbulb.UserBucket)
-@lightbulb.option("movie"," Name of the movie you want to watch.")
-@lightbulb.command("watch","watch a movie.",auto_defer=True,ephemeral=True)
-@lightbulb.implements(lightbulb.PrefixSubCommand,lightbulb.SlashSubCommand)
-async def search_movie(ctx: lightbulb.Context) -> None:
-    #connection to api
-    endpoint_path1="/search/movie"
-    endpoint1=f"{base_url}{endpoint_path1}?api_key={API_KEY}&query={ctx.options.movie}"
-    r1=requests.get(endpoint1)
-    if r1.status_code in range(200,299):
-        data= r1.json()
-        
-        title=data["results"][0]['title']
-        movie_id=data["results"][0]['id']
-        poster_path=data["results"][0]['poster_path']
-        image=f"https://image.tmdb.org/t/p/w500/{poster_path}"
-        movie=f"https://imdbembed.xyz/movie/tmdb/{movie_id}"
+@lightbulb.add_cooldown(5.0, 3, lightbulb.UserBucket)
+@lightbulb.option("movie", "The title of the movie you want to watch.")
+@lightbulb.command("watch", "Get a link to watch the movie.", auto_defer=True, ephemeral=True)
+@lightbulb.implements(lightbulb.PrefixSubCommand, lightbulb.SlashSubCommand)
+async def watch_movie(ctx: lightbulb.Context) -> None:
+    query = ctx.options.movie
+    params_search = {"query": query, "language": "en-US"}
+    search_url = f"{base_url}/search/movie"
+    r1 = session.get(search_url, headers=headers, params=params_search)
+    if r1.status_code != 200:
+        await ctx.respond("Failed to retrieve movie data from TMDb.", reply=True)
+        return
+    data = r1.json()
+    if not data.get("results"):
+        await ctx.respond("No movie found with that title.", reply=True)
+        return
 
-        embed2=(hikari.Embed(
-            title=f"🎬 WATCH [{title.upper()}] NOW",
-            url=movie,
-            timestamp=datetime.datetime.now().astimezone(),
-            colour=hikari.Color(0xe5e5e5),
-            )
-            .set_image(image)
-            .set_footer(f"Requested by {ctx.member.display_name}",icon=ctx.member.avatar_url)
-        )
-        await ctx.respond(embed2)
-    
-#trending movies this week
+    movie_result = data["results"][0]
+    title = movie_result.get("title", "Unknown Title")
+    mv_id = movie_result.get("id")
+    if not mv_id:
+        await ctx.respond("Movie ID not found.", reply=True)
+        return
+
+    poster_path = movie_result.get("poster_path")
+    image = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+    # Example: using an external embed service
+    watch_link = f" https://multiembed.mov/directstream.php?video_id={mv_id}&tmdb=1"
+    embed = hikari.Embed(
+        title=f"🎬 WATCH [{title.upper()}] NOW",
+        url=watch_link,
+        timestamp=datetime.datetime.now().astimezone(),
+        colour=hikari.Color(0xe5e5e5),
+    )
+    if image:
+        embed.set_image(image)
+    embed.set_footer(text=f"Requested by {ctx.member.display_name}", icon=ctx.member.avatar_url)
+    await ctx.respond(embed, reply=True)
+
+# 3. Trending movies this week (uses /trending/movie/week)
 @movie.child
-@lightbulb.add_cooldown(5.0,3,lightbulb.UserBucket)
-@lightbulb.command("trending","trending movies this week.")
-@lightbulb.implements(lightbulb.PrefixSubCommand,lightbulb.SlashSubCommand)
+@lightbulb.add_cooldown(5.0, 3, lightbulb.UserBucket)
+@lightbulb.command("trending", "Show trending movies this week.")
+@lightbulb.implements(lightbulb.PrefixSubCommand, lightbulb.SlashSubCommand)
 async def trending_movies(ctx: lightbulb.Context) -> None:
-    #connection to api
-    endpoint_path="/trending/movie/week"
-    endpoint=f"{base_url}{endpoint_path}?api_key={API_KEY}"
-    r=requests.get(endpoint)
-    if r.status_code in range(200,299):
-        data=r.json()
-        
-        title="TRENDING MOVIES"
-        poster_path=data["results"][0]['poster_path']
-        thumbnail=f"https://image.tmdb.org/t/p/w500/{poster_path}"
-        movies=[]
-        for i in range(len(data["results"])):
-            movies.append(data["results"][i]["title"])
-        embedlist = '\n'.join(movies)
-        
-        embed=(hikari.Embed(
-            title=title.upper(),
-            colour=hikari.Color(0xe5e5e5),
-            timestamp=datetime.datetime.now().astimezone(),
-        )
-        .set_thumbnail(thumbnail)
-        .add_field(name="TRENDING MOVIES THIS WEEK",value=embedlist)
-        .set_footer(
-            text=f"Requested by {ctx.member.display_name}",
-            icon=ctx.member.avatar_url
-            )
-        )
-        await ctx.respond(embed)
-        
-#similar movies of a given movie
-@movie.child
-@lightbulb.add_cooldown(5.0,3,lightbulb.UserBucket)
-@lightbulb.option("movie","The movie name.")
-@lightbulb.command("similar","Get a list of similar movies.")
-@lightbulb.implements(lightbulb.PrefixSubCommand,lightbulb.SlashSubCommand)
-async def similar_movies(ctx: lightbulb.Context) -> None:
-    #connection to api
-    endpoint_path1="/search/movie"
-    endpoint1=f"{base_url}{endpoint_path1}?api_key={API_KEY}&query={ctx.options.movie}"
-    r1=requests.get(endpoint1)
-    if r1.status_code in range(200,299):
-        data1= r1.json()
-        mv_id=data1["results"][0]['id']
-    
-    endpoint_path=f"/movie/{mv_id}/similar"
-    endpoint=f"{base_url}{endpoint_path}?api_key={API_KEY}"
-    r=requests.get(endpoint)
-    if r.status_code in range(200,299):
-        data=r.json()
-        
-        poster_path=data1["results"][0]['poster_path']
-        image=f"https://image.tmdb.org/t/p/w500/{poster_path}"
-        similar_movies=[]
-        for i in range(len(data["results"])):
-            similar_movies.append(data["results"][i]["title"])
-        embedlist = '\n'.join(similar_movies)
-        title=data1["results"][0]["original_title"]
-        
-        embed=(hikari.Embed(
-            title="SIMILAR MOVIES",
-            colour=hikari.Color(0xe5e5e5),
-            timestamp=datetime.datetime.now().astimezone(),
-        )
-        .add_field(name=f"A LIST OF SIMILAR MOVIES LIKE {title.upper()}:",value=embedlist)
-        .set_thumbnail(image)
-        .set_footer(
-            text=f"Requested by {ctx.member.display_name}",
-            icon=ctx.member.avatar_url
-            )
-        )
-        await ctx.respond(embed)
-     
-#popular movie at the moment
-@movie.child
-@lightbulb.add_cooldown(5.0,3,lightbulb.UserBucket)
-@lightbulb.command("popular","Get a list of the current popular movies.")
-@lightbulb.implements(lightbulb.PrefixSubCommand,lightbulb.SlashSubCommand)
-async def popular_movies(ctx:lightbulb.Context) -> None:
-    endpoint_path= "/movie/popular"
-    endpoint=f"{base_url}{endpoint_path}?api_key={API_KEY}"
-    r=requests.get(endpoint)
-    if r.status_code in range(200,299):
-        data=r.json()
-    
-    poster_path=data["results"][0]['poster_path']
-    image=f"https://image.tmdb.org/t/p/w500/{poster_path}"
-    popular_movies=[]
-    for i in range(len(data["results"])):
-        popular_movies.append(data["results"][i]["title"])
-    popular_movies="\n".join(popular_movies)
+    params = {"language": "en-US", "page": 1}
+    trending_url = f"{base_url}/trending/movie/week"
+    r = session.get(trending_url, headers=headers, params=params)
+    if r.status_code != 200:
+        await ctx.respond("Failed to retrieve trending movies.", reply=True)
+        return
+    data = r.json()
+    if not data.get("results"):
+        await ctx.respond("No trending movies found.", reply=True)
+        return
 
-    embed=(hikari.Embed(
+    movies_list = [movie.get("title", "Unknown") for movie in data.get("results", [])]
+    embedlist = "\n".join(movies_list)
+    first_result = data["results"][0]
+    poster_path = first_result.get("poster_path")
+    thumbnail = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+    embed = hikari.Embed(
+        title="TRENDING MOVIES",
+        colour=hikari.Color(0xe5e5e5),
+        timestamp=datetime.datetime.now().astimezone(),
+    )
+    if thumbnail:
+        embed.set_thumbnail(thumbnail)
+    embed.add_field(name="TRENDING MOVIES THIS WEEK", value=embedlist)
+    embed.set_footer(text=f"Requested by {ctx.member.display_name}", icon=ctx.member.avatar_url)
+    await ctx.respond(embed, reply=True)
+
+# 4. Similar movies for a given movie
+@movie.child
+@lightbulb.add_cooldown(5.0, 3, lightbulb.UserBucket)
+@lightbulb.option("movie", "The title of the movie for which to find similar movies.")
+@lightbulb.command("similar", "Get similar movies to a given movie.")
+@lightbulb.implements(lightbulb.PrefixSubCommand, lightbulb.SlashSubCommand)
+async def similar_movies(ctx: lightbulb.Context) -> None:
+    query = ctx.options.movie
+    params_search = {"query": query, "language": "en-US"}
+    search_url = f"{base_url}/search/movie"
+    r1 = session.get(search_url, headers=headers, params=params_search)
+    if r1.status_code != 200:
+        await ctx.respond("Failed to retrieve movie data from TMDb.", reply=True)
+        return
+    data1 = r1.json()
+    if not data1.get("results"):
+        await ctx.respond("No movie found with that title.", reply=True)
+        return
+
+    movie_result = data1["results"][0]
+    mv_id = movie_result.get("id")
+    if not mv_id:
+        await ctx.respond("Movie ID not found.", reply=True)
+        return
+
+    params_similar = {"language": "en-US"}
+    similar_url = f"{base_url}/movie/{mv_id}/similar"
+    r = session.get(similar_url, headers=headers, params=params_similar)
+    if r.status_code != 200:
+        await ctx.respond("Failed to retrieve similar movies.", reply=True)
+        return
+    data = r.json()
+    if not data.get("results"):
+        await ctx.respond("No similar movies found.", reply=True)
+        return
+
+    similar_movies_list = [movie.get("title", "Unknown") for movie in data.get("results", [])]
+    embedlist = "\n".join(similar_movies_list)
+    poster_path = movie_result.get("poster_path")
+    image = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+    original_title = movie_result.get("original_title", "Unknown")
+    embed = hikari.Embed(
+        title="SIMILAR MOVIES",
+        colour=hikari.Color(0xe5e5e5),
+        timestamp=datetime.datetime.now().astimezone(),
+    )
+    embed.add_field(name=f"Similar to {original_title.upper()}:", value=embedlist)
+    if image:
+        embed.set_thumbnail(image)
+    embed.set_footer(text=f"Requested by {ctx.member.display_name}", icon=ctx.member.avatar_url)
+    await ctx.respond(embed, reply=True)
+
+# 5. Popular movies (uses /movie/popular)
+@movie.child
+@lightbulb.add_cooldown(5.0, 3, lightbulb.UserBucket)
+@lightbulb.command("popular", "Get a list of popular movies right now.")
+@lightbulb.implements(lightbulb.PrefixSubCommand, lightbulb.SlashSubCommand)
+async def popular_movies(ctx: lightbulb.Context) -> None:
+    params = {"language": "en-US", "page": 1}
+    popular_url = f"{base_url}/movie/popular"
+    r = session.get(popular_url, headers=headers, params=params)
+    if r.status_code != 200:
+        await ctx.respond("Failed to retrieve popular movies.", reply=True)
+        return
+    data = r.json()
+    if not data.get("results"):
+        await ctx.respond("No popular movies found.", reply=True)
+        return
+
+    popular_movies_list = [movie.get("title", "Unknown") for movie in data.get("results", [])]
+    popular_movies_str = "\n".join(popular_movies_list)
+    poster_path = data["results"][0].get("poster_path")
+    image = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+    embed = hikari.Embed(
         title="POPULAR MOVIES",
         colour=hikari.Color(0xe5e5e5),
         timestamp=datetime.datetime.now().astimezone()
-        )
-    .add_field(
-        name="A LIST OF POPULAR MOVIES",
-        value=popular_movies
-        )
-    .set_thumbnail(image)
-    .set_footer(
-        text=f"Requested by {ctx.member.display_name}",
-        icon=ctx.member.avatar_url
-        )
     )
-    await ctx.respond(embed)
+    embed.add_field(name="A LIST OF POPULAR MOVIES", value=popular_movies_str)
+    if image:
+        embed.set_thumbnail(image)
+    embed.set_footer(text=f"Requested by {ctx.member.display_name}", icon=ctx.member.avatar_url)
+    await ctx.respond(embed, reply=True)
 
-
+# 6. Recommended movies for a given movie
 @movie.child
-@lightbulb.add_cooldown(5.0,3,lightbulb.UserBucket)
-@lightbulb.option("movie","The movie name.")
-@lightbulb.command("recommendation","Get a list of recommended movies for a movie.")
-@lightbulb.implements(lightbulb.PrefixSubCommand,lightbulb.SlashSubCommand)
-async def similar_movies(ctx: lightbulb.Context) -> None:
-    #connection to api
-    endpoint_path1="/search/movie"
-    endpoint1=f"{base_url}{endpoint_path1}?api_key={API_KEY}&query={ctx.options.movie}"
-    r1=requests.get(endpoint1)
-    if r1.status_code in range(200,299):
-        data1= r1.json()
-        mv_id=data1["results"][0]['id']
-    
-    endpoint_path=f"/movie/{mv_id}/recommendations"
-    endpoint=f"{base_url}{endpoint_path}?api_key={API_KEY}"
-    r=requests.get(endpoint)
-    if r.status_code in range(200,299):
-        data=r.json()
-        
-        poster_path=data1["results"][0]['poster_path']
-        image=f"https://image.tmdb.org/t/p/w500/{poster_path}"
-        recs_movies=[]
-        for i in range(len(data["results"])):
-            recs_movies.append(data["results"][i]["title"])
-        embedlist = '\n'.join(recs_movies)
-        title=data1["results"][0]["original_title"]
-        
-        embed=(hikari.Embed(
-            title="movie recommendations".upper(),
-            colour=hikari.Color(0xe5e5e5),
-            timestamp=datetime.datetime.now().astimezone(),
-        )
-        .add_field(name=f"A LIST OF [{title.upper()}] RECOMMENDATIONS:",value=embedlist)
-        .set_thumbnail(image)
-        .set_footer(
-            text=f"Requested by {ctx.member.display_name}",
-            icon=ctx.member.avatar_url
-            )
-        )
-        await ctx.respond(embed)
+@lightbulb.add_cooldown(5.0, 3, lightbulb.UserBucket)
+@lightbulb.option("movie", "The title of the movie for which to get recommendations.")
+@lightbulb.command("recommendation", "Get movie recommendations based on a given movie.")
+@lightbulb.implements(lightbulb.PrefixSubCommand, lightbulb.SlashSubCommand)
+async def recommendation(ctx: lightbulb.Context) -> None:
+    query = ctx.options.movie
+    params_search = {"query": query, "language": "en-US"}
+    search_url = f"{base_url}/search/movie"
+    r1 = session.get(search_url, headers=headers, params=params_search)
+    if r1.status_code != 200:
+        await ctx.respond("Failed to retrieve movie data from TMDb.", reply=True)
+        return
+    data1 = r1.json()
+    if not data1.get("results"):
+        await ctx.respond("No movie found with that title.", reply=True)
+        return
 
-def load(bot:lightbulb.BotApp):
+    movie_result = data1["results"][0]
+    mv_id = movie_result.get("id")
+    if not mv_id:
+        await ctx.respond("Movie ID not found.", reply=True)
+        return
+
+    params_rec = {"language": "en-US"}
+    rec_url = f"{base_url}/movie/{mv_id}/recommendations"
+    r = session.get(rec_url, headers=headers, params=params_rec)
+    if r.status_code != 200:
+        await ctx.respond("Failed to retrieve recommendations.", reply=True)
+        return
+    data = r.json()
+    if not data.get("results"):
+        await ctx.respond("No recommendations found.", reply=True)
+        return
+
+    rec_movies_list = [movie.get("title", "Unknown") for movie in data.get("results", [])]
+    embedlist = "\n".join(rec_movies_list)
+    poster_path = movie_result.get("poster_path")
+    image = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+    original_title = movie_result.get("original_title", "Unknown")
+    embed = hikari.Embed(
+        title="MOVIE RECOMMENDATIONS".upper(),
+        colour=hikari.Color(0xe5e5e5),
+        timestamp=datetime.datetime.now().astimezone()
+    )
+    embed.add_field(name=f"Recommendations based on {original_title.upper()}:", value=embedlist)
+    if image:
+        embed.set_thumbnail(image)
+    embed.set_footer(text=f"Requested by {ctx.member.display_name}", icon=ctx.member.avatar_url)
+    await ctx.respond(embed, reply=True)
+
+def load(bot: lightbulb.BotApp):
     bot.add_plugin(plugin)
 
 def unload(bot: lightbulb.BotApp):
