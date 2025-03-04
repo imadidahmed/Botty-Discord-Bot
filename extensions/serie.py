@@ -135,7 +135,7 @@ async def watch(ctx: lightbulb.Context) -> None:
         return
 
     # Construct a watch link using an external embed service (example)
-    watch_link = f"https://multiembed.mov?video_id={serie_id}&tmdb=1&s={ctx.options.season_number}&e={ctx.options.episode_number}"
+    watch_link = f"https://2embed.top/embed/tv/{serie_id}/{ctx.options.season_number}/{ctx.options.episode_number}"
     serie_title = show_result.get("original_name", "Unknown Title")
     poster_path = show_result.get("poster_path")
     poster = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
