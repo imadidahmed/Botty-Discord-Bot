@@ -5,6 +5,7 @@ import lightbulb
 import requests
 import dotenv
 from urllib.parse import quote
+import random
 
 # Load environment variables; MOVIE_API_KEY should be your TMDb Bearer token
 dotenv.load_dotenv()
@@ -108,9 +109,16 @@ async def search_movie(ctx: lightbulb.Context) -> None:
 @movie.child
 @lightbulb.add_cooldown(5.0, 3, lightbulb.UserBucket)
 @lightbulb.option("movie", "The title of the movie you want to watch.")
-@lightbulb.command("watch", "Get a link to watch the movie.", auto_defer=True, ephemeral=True)
+@lightbulb.command("watch", "Start a watch party activity for the movie.", auto_defer=True, ephemeral=True)
 @lightbulb.implements(lightbulb.PrefixSubCommand, lightbulb.SlashSubCommand)
-async def watch_movie(ctx: lightbulb.Context) -> None:
+async def watch_movie(ctx: lightbulb.Context) -> None: 
+    # Retrieve the user's voice state from the cache.
+    voice_state = ctx.bot.cache.get_voice_state(ctx.guild_id, ctx.member.id)
+    if voice_state is None or voice_state.channel_id is None:
+        await ctx.respond("You need to be in a voice channel to start a watch party.", reply=True)
+        return
+
+    # Search TMDb for the movie.
     query = ctx.options.movie
     params_search = {"query": query, "language": "en-US"}
     search_url = f"{base_url}/search/movie"
@@ -124,61 +132,70 @@ async def watch_movie(ctx: lightbulb.Context) -> None:
         return
 
     movie_result = data["results"][0]
-    title = movie_result.get("title", "Unknown Title")
+    movie_title = movie_result.get("title", "Unknown Title")
     mv_id = movie_result.get("id")
     if not mv_id:
         await ctx.respond("Movie ID not found.", reply=True)
         return
 
+    # Retrieve the movie poster image if available.
     poster_path = movie_result.get("poster_path")
-    image = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
-    # Example: using an external embed service
-    watch_link = f" https://2embed.top/embed/movie/{mv_id}"
-    embed = hikari.Embed(
-        title=f"🎬 WATCH [{title.upper()}] NOW",
-        url=watch_link,
-        timestamp=datetime.datetime.now().astimezone(),
-        colour=hikari.Color(0xe5e5e5),
-    )
-    if image:
-        embed.set_image(image)
-    embed.set_footer(text=f"Requested by {ctx.member.display_name}", icon=ctx.member.avatar_url)
-    await ctx.respond(embed, reply=True)
+    poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
 
-# 3. Trending movies this week (uses /trending/movie/week)
-@movie.child
-@lightbulb.add_cooldown(5.0, 3, lightbulb.UserBucket)
-@lightbulb.command("trending", "Show trending movies this week.")
-@lightbulb.implements(lightbulb.PrefixSubCommand, lightbulb.SlashSubCommand)
-async def trending_movies(ctx: lightbulb.Context) -> None:
-    params = {"language": "en-US", "page": 1}
-    trending_url = f"{base_url}/trending/movie/week"
-    r = session.get(trending_url, headers=headers, params=params)
-    if r.status_code != 200:
-        await ctx.respond("Failed to retrieve trending movies.", reply=True)
-        return
-    data = r.json()
-    if not data.get("results"):
-        await ctx.respond("No trending movies found.", reply=True)
-        return
+    # Build the external watch link.
+    watch_link = f"https://2embed.top/embed/movie/{mv_id}"
 
-    movies_list = [movie.get("title", "Unknown") for movie in data.get("results", [])]
-    embedlist = "\n".join(movies_list)
-    first_result = data["results"][0]
-    poster_path = first_result.get("poster_path")
-    thumbnail = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+    # Attempt to create an invite with Discord's Watch Together activity.
+    discord_activity_invite = None
+    try:
+        invite = await ctx.bot.rest.create_invite(
+            channel=voice_state.channel_id,
+            max_age=86400,  # Invite valid for 24 hours.
+            target_application_id=880218394199220334,  # Official Watch Together application ID.
+            target_type=2  # Indicates an embedded activity.
+        )
+        discord_activity_invite = f"https://discord.com/invite/{invite.code}"
+    except Exception as e:
+        print(f"Error creating activity invite: {e}")
+
+    # Build the embed description.
+    description = ""
+    if discord_activity_invite:
+        description += f"**Join the Discord activity:** [Click here]({discord_activity_invite})\n\n"
+    else:
+        description += "Discord activity invite could not be created. "
+    description += f"**Watch directly using this link:** [Watch Movie]({watch_link})\n\n"
+
+    # Create the embed.
     embed = hikari.Embed(
-        title="TRENDING MOVIES",
+        title=f"Watch Party for {movie_title.upper()}",
+        description=description,
         colour=hikari.Color(0xe5e5e5),
         timestamp=datetime.datetime.now().astimezone(),
     )
-    if thumbnail:
-        embed.set_thumbnail(thumbnail)
-    embed.add_field(name="TRENDING MOVIES THIS WEEK", value=embedlist)
     embed.set_footer(text=f"Requested by {ctx.member.display_name}", icon=ctx.member.avatar_url)
+    
+    # Use a thumbnail so the poster appears on the right.
+    if poster_url:
+        embed.set_thumbnail(poster_url)
+        
+    # Define a list of fun notes and select one at random.
+    notes = [
+        "So grab your popcorn, start sharing your screen, and let the movie marathon begin—have a blast together!",
+        "Lights, camera, action! Share your screen and enjoy a blockbuster night!",
+        "Popcorn? Check. Screen share? Check. Let’s dive into an epic movie adventure!",
+        "Get ready for movie magic! Share your screen and enjoy every thrilling moment!",
+        "Time for a cinematic treat! Share your screen and let the fun times roll!"
+    ]
+    random_note = random.choice(notes)
+    
+    # Add the random note as an embed field to make it more noticeable.
+    embed.add_field(name=" ", value=random_note, inline=False)
+    
     await ctx.respond(embed, reply=True)
 
-# 4. Similar movies for a given movie
+
+# 2. movie similarities – provides similar movies the one requested 
 @movie.child
 @lightbulb.add_cooldown(5.0, 3, lightbulb.UserBucket)
 @lightbulb.option("movie", "The title of the movie for which to find similar movies.")
